@@ -71,6 +71,18 @@ def background_investigation_node(state: State, config: RunnableConfig):
         background_investigation_results = get_web_search_tool(
             configurable.max_search_results
         ).invoke(query)
+        
+        # Handle potential JSON strings from search engines like BraveSearch
+        if isinstance(background_investigation_results, str):
+            # If it's already a JSON string, try to parse and re-serialize it
+            try:
+                parsed_results = json.loads(background_investigation_results)
+                background_investigation_results = parsed_results
+            except json.JSONDecodeError:
+                # If it's not valid JSON, treat it as plain text
+                logger.warning(f"Search engine returned non-JSON string: {background_investigation_results[:200]}...")
+                background_investigation_results = [{"type": "text", "content": background_investigation_results}]
+    
     return {
         "background_investigation_results": json.dumps(
             background_investigation_results, ensure_ascii=False
